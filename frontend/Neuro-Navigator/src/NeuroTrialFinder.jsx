@@ -148,16 +148,16 @@ const styles = `
   }
 
   .section-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  font-family: var(--mono);
+  font-size: 14px;          /* was 10px */
+  letter-spacing: 0.10em;   /* was 0.15em */
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;                
+}
 
   .section-label::after {
     content: '';
@@ -328,7 +328,7 @@ const styles = `
   .submit-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #3182ce 0%, #6b46c1 100%);
+    background: linear-gradient(135deg, #ee8147 0%, #f95e46 100%);
     border: none;
     border-radius: 10px;
     color: white;
@@ -795,6 +795,7 @@ function TrialsMap({ trials, apiKey }) {
 
   useEffect(() => {
     if (!apiKey || loaded) return;
+    if (window.google && window.google.maps) { setLoaded(true); return; }
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
     script.async = true;
@@ -817,7 +818,33 @@ function TrialsMap({ trials, apiKey }) {
         { featureType: "poi", stylers: [{ visibility: "off" }] },
       ],
     });
+
+    const legend = document.createElement("div");
+    legend.style.cssText = `
+      background: #0f1726;
+      border: 1px solid rgba(99,179,237,0.25);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 2;
+    `;
+    legend.innerHTML = `
+      <div style="color:#e2e8f0;font-weight:600;margin-bottom:6px;font-size:12px">Trial Rank</div>
+      <div><span style="color:#f6ad55">●</span> &nbsp;#1 Match</div>
+      <div><span style="color:#90cdf4">●</span> &nbsp;#2 Match</div>
+      <div><span style="color:#68d391">●</span> &nbsp;#3 Match</div>
+      <div><span style="color:#b794f4">●</span> &nbsp;#4+ Match</div>
+    `;
+    map.controls[window.google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+
+    const colors = ["#f6ad55", "#90cdf4", "#68d391", "#b794f4"];
+    let openInfo = null;
+
     trials.forEach((trial, ti) => {
+      const color = colors[Math.min(ti, colors.length - 1)];
       (trial.sites || []).forEach(site => {
         if (!site.lat || !site.lng) return;
         const marker = new window.google.maps.Marker({
@@ -827,7 +854,7 @@ function TrialsMap({ trials, apiKey }) {
           icon: {
             path: window.google.maps.SymbolPath.CIRCLE,
             scale: 7,
-            fillColor: ti === 0 ? "#f6ad55" : ti === 1 ? "#90cdf4" : "#68d391",
+            fillColor: color,
             fillOpacity: 0.9,
             strokeColor: "#0a0f1a",
             strokeWeight: 2,
@@ -835,14 +862,20 @@ function TrialsMap({ trials, apiKey }) {
         });
         const info = new window.google.maps.InfoWindow({
           content: `
-            <div style="background:#0f1726;color:#e2e8f0;padding:10px;border-radius:8px;font-family:monospace;font-size:12px;max-width:220px">
-              <div style="color:#e1a414;font-size:10px;margin-bottom:4px">#${trial.rank} · ${trial.nctId}</div>
-              <div style="font-weight:600;margin-bottom:4px">${site.facility}</div>
-              <div style="color:#94a3b8">${site.city}, ${site.state}</div>
+            <div style="background:#0f1726;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:monospace;font-size:12px;max-width:240px">
+              <div style="color:${color};font-size:10px;margin-bottom:4px">#${trial.rank} Match · ${trial.matchScore}% fit</div>
+              <div style="font-weight:600;margin-bottom:4px;font-size:13px">${trial.nctId}</div>
+              <div style="color:#e2e8f0;margin-bottom:6px;font-family:sans-serif;font-size:12px">${trial.name}</div>
+              <div style="color:#94a3b8">${site.facility}</div>
+              <div style="color:#94a3b8">${site.city}${site.state ? ", " + site.state : ""}</div>
             </div>
           `,
         });
-        marker.addListener("click", () => info.open(map, marker));
+        marker.addListener("click", () => {
+          if (openInfo) openInfo.close();
+          openInfo = info;
+          info.open(map, marker);
+        });
       });
     });
   }, [loaded, trials]);
