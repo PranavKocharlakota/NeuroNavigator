@@ -29,7 +29,7 @@ const styles = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: var(--font);
+    font-family: var(--mono);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -101,9 +101,6 @@ const styles = `
 }
 
   .logo-dot {
-    
-    
-   
     animation: pulse 2s infinite;
   }
 
@@ -998,6 +995,21 @@ export default function App() {
                       <option value="4">Grade 4</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Molecular Markers */}
+              <div className="card">
+                <div className="section-label">Molecular Markers & Mutations</div>
+                <div className="form-grid full">
+                  <div className="field">
+                    <label>Known Mutations / Alterations (press Enter or comma to add)</label>
+                    <TagInput
+                      value={form.mutations}
+                      onChange={v => set("mutations", v)}
+                      placeholder="e.g. BRAF V600E, EGFR amplification, TERT promoter..."
+                    />
+                  </div>
                   <div className="field">
                     <label>IDH Status</label>
                     <select value={form.idh} onChange={e => set("idh", e.target.value)}>
@@ -1013,21 +1025,6 @@ export default function App() {
                       <option value="methylated">Methylated</option>
                       <option value="unknown">Unknown / Not Tested</option>
                     </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Molecular Markers */}
-              <div className="card">
-                <div className="section-label">Molecular Markers & Mutations</div>
-                <div className="form-grid full">
-                  <div className="field">
-                    <label>Known Mutations / Alterations (press Enter or comma to add)</label>
-                    <TagInput
-                      value={form.mutations}
-                      onChange={v => set("mutations", v)}
-                      placeholder="e.g. BRAF V600E, EGFR amplification, TERT promoter..."
-                    />
                   </div>
                 </div>
               </div>
