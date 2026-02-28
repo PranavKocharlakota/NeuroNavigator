@@ -148,16 +148,16 @@ const styles = `
   }
 
   .section-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  font-family: var(--mono);
+  font-size: 14px;          /* was 10px */
+  letter-spacing: 0.10em;   /* was 0.15em */
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;                
+}
 
   .section-label::after {
     content: '';
