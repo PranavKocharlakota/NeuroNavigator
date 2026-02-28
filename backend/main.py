@@ -78,7 +78,7 @@ async def rank(profile: PatientProfile):
         condition  = f"recurrent {base_cond}" if profile.tumorStatus.value == "recurrent" else base_cond
 
         t0 = time.monotonic()
-        raw    = await fetch_studies(condition=condition, page_size=50)
+        raw    = await fetch_studies(condition=condition, page_size=25)
         trials = parse_studies(raw)
         print(f"[timing] fetch+parse: {time.monotonic()-t0:.2f}s  trials={len(trials)}")
 
