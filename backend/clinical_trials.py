@@ -22,12 +22,36 @@ def parse_studies(data: dict) -> list[dict]:
         id_module = protocol.get("identificationModule", {})
         status_module = protocol.get("statusModule", {})
         eligibility_module = protocol.get("eligibilityModule", {})
+        locations_module = protocol.get("contactsLocationsModule", {})
 
         nct_id = id_module.get("nctId")
         eligibility = eligibility_module.get("eligibilityCriteria") or ""
         design_module = protocol.get("designModule", {})
         phases = design_module.get("phases", [])
         phase_str = " / ".join(phases) if phases else "N/A"
+
+        sites = []
+        for location in locations_module.get("locations", [])[:20]:
+            facility = location.get("facility", "")
+            city     = location.get("city", "")
+            state    = location.get("state", "")
+            country  = location.get("country", "")
+            geo      = location.get("geoPoint")
+
+            parts   = [part for part in [facility, city, state, country] if part]
+            address = ", ".join(parts)
+
+            if address:
+                sites.append({
+                    "facility": facility,
+                    "city":     city,
+                    "state":    state,
+                    "country":  country,
+                    "address":  address,
+                    "lat":      geo.get("lat") if geo else None,
+                    "lng":      geo.get("lon") if geo else None,
+                })
+
         results.append({
             "nct_id": nct_id,
             "title": id_module.get("briefTitle"),
@@ -35,6 +59,7 @@ def parse_studies(data: dict) -> list[dict]:
             "phase": phase_str,
             "eligibility": eligibility[:1500],
             "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else None,
+            "sites":       sites,
         })
     return results
 
