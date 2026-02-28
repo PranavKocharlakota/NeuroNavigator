@@ -771,6 +771,22 @@ const styles = `
     font-size: 14px;
     margin-bottom: 20px;
   }
+
+@keyframes fadeDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px); /* start above */
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0); /* move into place */
+  }
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeDown 700ms ease-out forwards;
+}
 `;
 
 function TrialsMap({ trials, apiKey }) {
@@ -974,6 +990,7 @@ export default function App() {
 
   const [form, setForm] = useState({
     age: "",
+    zipcode: "",
     diagnosis: "GBM",
     grade: "4",
     tumorStatus: "newly_diagnosed",
@@ -1007,6 +1024,7 @@ export default function App() {
     try {
       const payload = {
         age: parseInt(form.age, 10),
+        zipcode: form.zipcode || null,
         diagnosis: DIAGNOSIS_MAP[form.diagnosis] || "Other",
         grade: parseInt(form.grade, 10),
         tumorStatus: form.tumorStatus,
@@ -1050,6 +1068,7 @@ export default function App() {
         mechanism: t.mechanism || "",
         keyDates: t.keyDates || "",
         reasoning: t.patientExplanation || "",
+        sites: t.sites || [],
       }));
 
       setResults(trials);
@@ -1068,7 +1087,7 @@ export default function App() {
       <style>{styles}</style>
       <div className="app">
         <div className="container">
-          <div className="header">
+          <div className="header fade-in">
             <div className="logo-mark">
               <span className="logo-dot">🧠</span> 
               NeuroNavigator
@@ -1082,7 +1101,7 @@ export default function App() {
           {phase === "form" && (
             <>
               {/* Basic Info */}
-              <div className="card">
+              <div className="card fade-in">
                 <div className="section-label">Patient & Tumor Basics</div>
                 <div className="form-grid">
                   <div className="field">
@@ -1100,6 +1119,18 @@ export default function App() {
                       <option value="Medulloblastoma">Medulloblastoma</option>
                       <option value="Other">Other Brain Tumor</option>
                     </select>
+                  </div>
+                  <div className="field">
+                  <label>Zip Code</label>
+                  <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="\d{5}"
+                      maxLength={5}
+                      placeholder="e.g. 92612"
+                      value={form.zipcode}
+                      onChange={(e) => set("zipcode", e.target.value.replace(/\D/g, "").slice(0, 5))}
+                    />
                   </div>
                   <div className="field">
                     <label>WHO Grade</label>
@@ -1121,7 +1152,7 @@ export default function App() {
                 </div>
 
               {/* Molecular Markers */}
-              <div className="card">
+              <div className="card fade-in">
                 <div className="section-label">Molecular Markers & Mutations</div>
                 <div className="form-grid full">
                   <div className="field">
@@ -1152,7 +1183,7 @@ export default function App() {
               </div>
 
               {/* Treatment History */}
-              <div className="card">
+              <div className="card fade-in">
                 <div className="section-label">Treatment History</div>
                 <div className="form-grid full">
                   <div className="field">
@@ -1167,7 +1198,7 @@ export default function App() {
               </div>
 
               {/* Performance Status */}
-              <div className="card">
+              <div className="card fade-in">
                 <div className="section-label">Performance Status (ECOG)</div>
                 <div className="perf-grid">
                   {[0,1,2,3,4].map(score => (
@@ -1184,7 +1215,7 @@ export default function App() {
               </div>
 
               {/* Additional Notes */}
-              <div className="card">
+              <div className="card fade-in">
                 <div className="section-label">Additional Context (optional)</div>
                 <div className="field">
                   <label>Any other relevant details (e.g. prior radiation field, allergies, recurrence info)</label>
