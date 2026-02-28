@@ -68,12 +68,13 @@ const styles = `
   }
 
   .container {
-    position: relative;
-    z-index: 1;
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 100px 500px 50px;
-  }
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
 
   /* Header */
   .header {
@@ -948,7 +949,7 @@ export default function App() {
             </div>
             <h1>Find Clinical Trials<br />Matched to <span>Your Profile</span></h1>
             <p className="subtitle">
-              Enter your tumor details below. We'll analyze active trials and rank the ones you're most likely to qualify for — with plain-language explanations to guide your conversation with your oncologist.
+              Tell us a bit about your diagnosis. We’ll look through active trials and highlight the ones you may qualify for to help guide your conversation with your oncologist.
             </p>
           </div>
 
