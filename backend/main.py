@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-
 from patient_profile import PatientProfile
 from clinical_trials import fetch_studies, parse_studies
 from prompts import rank_trials
+import os
 
 load_dotenv()
 
@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -21,6 +21,14 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"status": "ok"}
+
+
+@app.get("/api/maps-key")
+def maps_key():
+    key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    if not key:
+        raise HTTPException(status_code=500, detail="Maps key not configured")
+    return {"key": key}
 
 
 @app.post("/rank")
