@@ -1,18 +1,41 @@
+import asyncio
+import time
 import requests
 
-BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
+BASE_URL  = "https://clinicaltrials.gov/api/v2/studies"
+CACHE_TTL = 600  # seconds (10 minutes)
+
+_cache: dict[tuple, tuple] = {}  # (query, page_size, page_token) -> (data, timestamp)
 
 
-def fetch_studies(query: str = None, page_size: int = 10, page_token: str = None) -> dict:
-    params = {"pageSize": page_size, "sort": "LastUpdatePostDate:desc"}
-    if query:
-        params["query.term"] = query
+def _fetch_studies_sync(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
+    cache_key = (condition, page_size, page_token)
+    now = time.monotonic()
+
+    cached = _cache.get(cache_key)
+    if cached and (now - cached[1]) < CACHE_TTL:
+        return cached[0]
+
+    params = {
+        "pageSize": page_size,
+        "sort": "LastUpdatePostDate:desc",
+        "filter.overallStatus": "RECRUITING",
+    }
+    if condition:
+        params["query.term"] = condition
     if page_token:
         params["pageToken"] = page_token
 
-    response = requests.get(BASE_URL, params=params)
+    response = requests.get(BASE_URL, params=params, timeout=30)
     response.raise_for_status()
-    return response.json()
+    data = response.json()
+
+    _cache[cache_key] = (data, now)
+    return data
+
+
+async def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
+    return await asyncio.to_thread(_fetch_studies_sync, condition, page_size, page_token)
 
 
 def parse_studies(data: dict) -> list[dict]:
@@ -59,13 +82,13 @@ def parse_studies(data: dict) -> list[dict]:
             "phase": phase_str,
             "eligibility": eligibility[:700],
             "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else None,
-            "sites":       sites,
+            "sites": sites,
         })
     return results
 
 
 if __name__ == "__main__":
-    data = fetch_studies(query="cancer", page_size=5)
+    data = asyncio.run(fetch_studies(query="cancer", page_size=5))
     studies = parse_studies(data)
     for s in studies:
         print(f"[{s['nct_id']}] {s['title']} — {s['status']}")
