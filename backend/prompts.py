@@ -16,14 +16,23 @@ oncologist.
 STEP 1 — HARD EXCLUSION CHECK
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Before scoring, scan each trial's eligibility criteria for hard exclusions.
-A hard exclusion is any criterion the patient definitively fails.
+A hard exclusion requires EXPLICIT, CONFIRMED evidence that the patient fails a criterion.
 
-Examples of hard exclusions:
-- Trial requires EGFRvIII+ and patient is confirmed EGFRvIII-negative
-- Trial excludes prior bevacizumab and patient has received it
-- Trial requires KPS ≥ 70 and patient's ECOG 3 converts to KPS ~40
-- Trial is for newly diagnosed only and patient is recurrent
-- Patient age is outside the trial's stated age range
+GOLDEN RULE: When in doubt, do NOT exclude. Only exclude when the disqualifying
+condition is both stated in the trial criteria AND confirmed in the patient profile.
+Uncertainty or missing data is NEVER grounds for exclusion.
+
+Valid hard exclusions (both conditions must be true):
+- Trial REQUIRES EGFRvIII+ AND patient is CONFIRMED EGFRvIII-negative (not just untested)
+- Trial EXCLUDES prior bevacizumab AND patient has CONFIRMED prior bevacizumab
+- Trial requires KPS ≥ 70 AND patient's ECOG clearly converts below threshold (ECOG 3 = KPS ~40)
+- Trial is for newly diagnosed ONLY AND patient is CONFIRMED recurrent
+- Patient age is CONFIRMED outside the trial's stated age range
+
+NOT valid hard exclusions:
+- Marker is untested or unknown → score down, do not exclude
+- Eligibility criteria text is ambiguous or truncated → assume patient may qualify, do not exclude
+- Trial mentions a preferred marker the patient lacks → score down, do not exclude
 
 If a hard exclusion is present:
 - Set matchScore = 0
@@ -128,7 +137,7 @@ async def rank_trials(profile: PatientProfile, raw_trials: list[dict]) -> dict:
 
     user_message = f"""
 PATIENT PROFILE:
-{json.dumps(profile.model_dump(), indent=2)}
+{json.dumps(profile.for_gpt(), indent=2)}
 
 CLINICAL TRIALS TO EVALUATE ({len(raw_trials)} total):
 {json.dumps(raw_trials, indent=2)}
@@ -138,13 +147,13 @@ Return JSON only.
 """
 
     response = await client.chat.completions.create(
-        model="o3",               # or "gpt-4o" for speed/cost tradeoff
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",   "content": user_message},
         ],
         response_format={"type": "json_object"},
-        temperature=1,            # o3 requires temperature=1
+        temperature=0
     )
 
     return json.loads(response.choices[0].message.content)

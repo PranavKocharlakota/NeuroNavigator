@@ -4,7 +4,7 @@ BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
 
 def fetch_studies(query: str = None, page_size: int = 10, page_token: str = None) -> dict:
-    params = {"pageSize": page_size}
+    params = {"pageSize": page_size, "sort": "LastUpdatePostDate:desc"}
     if query:
         params["query.term"] = query
     if page_token:
@@ -21,15 +21,16 @@ def parse_studies(data: dict) -> list[dict]:
         protocol = study.get("protocolSection", {})
         id_module = protocol.get("identificationModule", {})
         status_module = protocol.get("statusModule", {})
-        desc_module = protocol.get("descriptionModule", {})
         eligibility_module = protocol.get("eligibilityModule", {})
 
+        nct_id = id_module.get("nctId")
+        eligibility = eligibility_module.get("eligibilityCriteria") or ""
         results.append({
-            "nct_id": id_module.get("nctId"),
+            "nct_id": nct_id,
             "title": id_module.get("briefTitle"),
             "status": status_module.get("overallStatus"),
-            "summary": desc_module.get("briefSummary"),
-            "eligibility": eligibility_module.get("eligibilityCriteria"),
+            "eligibility": eligibility[:1500],
+            "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else None,
         })
     return results
 
