@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -717,6 +717,75 @@ const styles = `
   }
 `;
 
+function TrialsMap({ trials, apiKey }) {
+  const mapRef = useRef(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!apiKey || loaded) return;
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.head.appendChild(script);
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const map = new window.google.maps.Map(mapRef.current, {
+      zoom: 4,
+      center: { lat: 39.5, lng: -98.35 },
+      mapTypeId: "roadmap",
+      styles: [
+        { elementType: "geometry", stylers: [{ color: "#0f1726" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#0a0f1a" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#14203a" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0a0f1a" }] },
+        { featureType: "poi", stylers: [{ visibility: "off" }] },
+      ],
+    });
+    trials.forEach((trial, ti) => {
+      (trial.sites || []).forEach(site => {
+        if (!site.lat || !site.lng) return;
+        const marker = new window.google.maps.Marker({
+          position: { lat: site.lat, lng: site.lng },
+          map,
+          title: site.facility,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: ti === 0 ? "#f6ad55" : ti === 1 ? "#90cdf4" : "#68d391",
+            fillOpacity: 0.9,
+            strokeColor: "#0a0f1a",
+            strokeWeight: 2,
+          },
+        });
+        const info = new window.google.maps.InfoWindow({
+          content: `
+            <div style="background:#0f1726;color:#e2e8f0;padding:10px;border-radius:8px;font-family:monospace;font-size:12px;max-width:220px">
+              <div style="color:#e1a414;font-size:10px;margin-bottom:4px">#${trial.rank} · ${trial.nctId}</div>
+              <div style="font-weight:600;margin-bottom:4px">${site.facility}</div>
+              <div style="color:#94a3b8">${site.city}, ${site.state}</div>
+            </div>
+          `,
+        });
+        marker.addListener("click", () => info.open(map, marker));
+      });
+    });
+  }, [loaded, trials]);
+
+  return (
+    <div ref={mapRef} style={{
+      width: "100%",
+      height: "85vh",
+      borderRadius: "12px",
+      border: "1px solid rgba(99,179,237,0.15)",
+      background: "#0f1726",
+    }} />
+  );
+}
+
 
 const performanceLabels = ["Fully active", "Restricted strenuous", "Ambulatory, selfcare", "Limited selfcare", "Completely disabled"];
 
@@ -864,7 +933,6 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [results, setResults] = useState([]);
   const [error, setError] = useState("");
-  const [showMap, setShowMap] = useState(false);
   const [mapsKey, setMapsKey] = useState("");
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -1120,10 +1188,6 @@ export default function App() {
                 <TrialCard key={trial.nctId} trial={trial} index={i} />
               ))}
 
-              {showMap && mapsKey && (
-                <TrialsMap trials={results} apiKey={mapsKey} />
-              )}
-
               <button
                 className="reset-btn"
                 style={{ width: "100%", marginBottom: 16, justifyContent: "center" }}
@@ -1133,13 +1197,11 @@ export default function App() {
                     const data = await res.json();
                     setMapsKey(data.key);
                   }
-                  setShowMap(v => !v);
+                  setPhase("map");
                 }}
               >
-                {showMap ? "Hide Map" : "Show Trials on Map"}
+                Show Trials on Map
               </button>
-
-              <div className="disclaimer"></div>
 
               <div className="disclaimer">
                 <span className="disclaimer-icon">⚕</span>
@@ -1148,6 +1210,25 @@ export default function App() {
                 </span>
               </div>
             </>
+          )}
+          {phase === "map" && (
+            <div style={{ position: "relative" }}>
+              <TrialsMap trials={results} apiKey={mapsKey} />
+              <button
+                className="reset-btn"
+                style={{
+                  position: "absolute",
+                  bottom: 24,
+                  left: 24,
+                  zIndex: 10,
+                  background: "var(--bg2)",
+                  borderColor: "var(--border-strong)",
+                }}
+                onClick={() => setPhase("results")}
+              >
+                ← Back to Results
+              </button>
+            </div>
           )}
         </div>
       </div>
