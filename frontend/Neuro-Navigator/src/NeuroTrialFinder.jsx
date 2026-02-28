@@ -148,16 +148,16 @@ const styles = `
   }
 
   .section-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  font-family: var(--mono);
+  font-size: 14px;          /* was 10px */
+  letter-spacing: 0.10em;   /* was 0.15em */
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;                
+}
 
   .section-label::after {
     content: '';
@@ -328,7 +328,7 @@ const styles = `
   .submit-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #3182ce 0%, #6b46c1 100%);
+    background: linear-gradient(135deg, #ee8147 0%, #f95e46 100%);
     border: none;
     border-radius: 10px;
     color: white;
