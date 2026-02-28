@@ -374,42 +374,56 @@ const styles = `
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .loading-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: 300px;
-    margin: 20px auto 0;
-  }
+  /* keep the card centered, but force the steps list to be left-aligned */
+.loading-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+  margin: 20px auto 0;
 
-  .loading-step {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--text-faint);
-    transition: color 0.3s;
-  }
+  align-items: flex-start;   /* left align rows */
+  text-align: left;          /* left align wrapped lines */
+}
 
-  .loading-step.active { color: var(--accent); }
-  .loading-step.done { color: var(--green); }
+.loading-step {
+  display: flex;
+  align-items: flex-start;   /* icon aligns to top of multi-line text */
+  gap: 10px;
+  width: 100%;
+}
 
-  .step-icon {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1px solid currentColor;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    flex-shrink: 0;
-  }
+.step-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;           /* prevents shifting */
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+}
 
   .loading-step.active .step-icon {
     background: var(--accent-glow);
     animation: pulse 1.5s infinite;
   }
+
+  /* colors for step states */
+.loading-step.active {
+  color: var(--accent);
+}
+
+.loading-step.done {
+  color: var(--green);
+}
+
+.loading-step.done .step-icon {
+  border-color: var(--green);
+  color: var(--green);
+}
 
   /* Results */
   .results-header {
