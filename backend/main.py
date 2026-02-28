@@ -5,6 +5,7 @@ from patient_profile import PatientProfile
 from clinical_trials import fetch_studies, parse_studies
 from prompts import rank_trials
 import os
+from geocode import geocode_address
 
 load_dotenv()
 
@@ -37,7 +38,20 @@ async def rank(profile: PatientProfile):
         query = f"{profile.diagnosis.value} brain tumor clinical trial"
         raw = fetch_studies(query=query, page_size=20)
         trials = parse_studies(raw)
+
+        for trial in trials:
+            for site in trial.get("sites", []):
+                if site["lat"] is None and site["address"]:
+                    coords = geocode_address(site["address"])
+                    if coords:
+                        site["lat"], site["lng"] = coords
+
         result = await rank_trials(profile, trials)
+
+        sites_by_nct = {t["nct_id"]: t.get("sites", []) for t in trials}
+        for ranked in result.get("rankedTrials", []):
+            ranked["sites"] = sites_by_nct.get(ranked["nctId"], [])
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
