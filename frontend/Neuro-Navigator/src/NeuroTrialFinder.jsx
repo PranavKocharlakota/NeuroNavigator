@@ -983,8 +983,15 @@ export default function App() {
                       <option value="4">Grade 4</option>
                     </select>
                   </div>
+                  <div className="field">
+                    <label>Tumor Status</label>
+                    <select value={form.tumorStatus} onChange={e => set("tumorStatus", e.target.value)}>
+                      <option value="newly_diagnosed">Newly Diagnosed</option>
+                      <option value="recurrent">Recurrent</option>
+                    </select>
+                  </div>
+                  </div>
                 </div>
-              </div>
 
               {/* Molecular Markers */}
               <div className="card">
@@ -997,13 +1004,6 @@ export default function App() {
                       onChange={v => set("mutations", v)}
                       placeholder="e.g. BRAF V600E, EGFR amplification, TERT promoter..."
                     />
-                  </div>
-                  <div className="field">
-                    <label>Tumor Status</label>
-                    <select value={form.tumorStatus} onChange={e => set("tumorStatus", e.target.value)}>
-                      <option value="newly_diagnosed">Newly Diagnosed</option>
-                      <option value="recurrent">Recurrent</option>
-                    </select>
                   </div>
                   <div className="field">
                     <label>IDH Status</label>
