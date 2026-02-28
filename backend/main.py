@@ -27,7 +27,7 @@ def root():
 async def rank(profile: PatientProfile):
     try:
         query = f"{profile.diagnosis.value} brain tumor clinical trial"
-        raw = fetch_studies(query=query, page_size=20)
+        raw = fetch_studies(query=query, page_size=150)
         trials = parse_studies(raw)
         result = await rank_trials(profile, trials)
         return result

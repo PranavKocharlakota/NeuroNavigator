@@ -33,7 +33,7 @@ def parse_studies(data: dict) -> list[dict]:
             "title": id_module.get("briefTitle"),
             "status": status_module.get("overallStatus"),
             "phase": phase_str,
-            "eligibility": eligibility[:1500],
+            "eligibility": eligibility[:700],
             "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else None,
         })
     return results

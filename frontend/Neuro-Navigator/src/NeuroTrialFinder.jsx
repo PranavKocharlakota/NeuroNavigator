@@ -922,7 +922,7 @@ export default function App() {
         eligibilitySummary: t.eligibilitySummary || [],
         mechanism: t.mechanism || "",
         keyDates: t.keyDates || "",
-        reasoning: t.clinicalReasoning || "",
+        reasoning: t.patientExplanation || "",
       }));
 
       setResults(trials);
