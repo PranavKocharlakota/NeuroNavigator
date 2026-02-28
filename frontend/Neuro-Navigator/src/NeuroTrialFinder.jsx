@@ -550,6 +550,48 @@ const styles = `
     transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
+ .emoji-spinner {
+  font-size: 44px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* straighten the test tube */
+  transform: rotate(-45deg);
+
+  animation: spinPause 2.4s ease-in-out infinite;
+  transform-origin: center;
+
+  filter: drop-shadow(0 0 10px rgba(225,164,20,0.25));
+}
+
+@keyframes spinPause {
+
+  0% {
+    transform: rotate(-45deg);
+  }
+
+  30% {
+    transform: rotate(315deg);
+  }
+
+  50% {
+    transform: rotate(315deg);
+  }
+
+  80% {
+    transform: rotate(675deg);
+  }
+
+  100% {
+    transform: rotate(675deg);
+  }
+
+}
+
   .match-pct {
     font-family: var(--mono);
     font-size: 12px;
@@ -1078,8 +1120,8 @@ export default function App() {
 
           {phase === "loading" && (
             <div className="loading-card">
-              <div className="spinner-ring" />
-              <div style={{color: "var(--text)", fontWeight: 600, fontSize: 16}}>Analyzing your profile...</div>
+            <div className="emoji-spinner">🧪</div>
+            <div style={{color: "var(--text)", fontWeight: 600, fontSize: 16}}>Analyzing your profile...</div>
               <div style={{color: "var(--text-dim)", fontSize: 13, marginTop: 6}}>Searching active brain cancer trials</div>
               <div className="loading-steps">
                 {LOADING_STEPS.map((step, i) => (
