@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
     --bg: #0a0f1a;
@@ -9,7 +9,7 @@ const styles = `
     --bg3: #14203a;
     --border: rgba(99, 179, 237, 0.15);
     --border-strong: rgba(99, 179, 237, 0.35);
-    --accent: #63b3ed;
+    --accent: #e1a414;
     --accent2: #90cdf4;
     --accent-glow: rgba(99, 179, 237, 0.2);
     --green: #68d391;
@@ -23,12 +23,13 @@ const styles = `
     --text-faint: #475569;
     --font: 'Sora', sans-serif;
     --mono: 'JetBrains Mono', monospace;
+
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: var(--font);
+    font-family: var(--mono);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -71,35 +72,35 @@ const styles = `
     z-index: 1;
     max-width: 100%;
     margin: 0 auto;
-    padding: 48px 500px 100px;
+    padding: 100px 500px 50px;
   }
 
   /* Header */
   .header {
     text-align: center;
-    margin-bottom: 52px;
+    margin-bottom: 50px;
   }
 
   .logo-mark {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-    padding: 6px 16px;
-    background: var(--bg3);
-    border: 1px solid var(--border-strong);
-    border-radius: 100px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+
+  /* remove the bubble */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 55px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 
   .logo-dot {
-    width: 6px; height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
     animation: pulse 2s infinite;
   }
 
@@ -942,7 +943,7 @@ export default function App() {
         <div className="container">
           <div className="header">
             <div className="logo-mark">
-              <span className="logo-dot" />
+              <span className="logo-dot">🧠</span> 
               NeuroNavigator
             </div>
             <h1>Find Clinical Trials<br />Matched to <span>Your Profile</span></h1>
@@ -982,6 +983,21 @@ export default function App() {
                       <option value="4">Grade 4</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Molecular Markers */}
+              <div className="card">
+                <div className="section-label">Molecular Markers & Mutations</div>
+                <div className="form-grid full">
+                  <div className="field">
+                    <label>Known Mutations / Alterations (press Enter or comma to add)</label>
+                    <TagInput
+                      value={form.mutations}
+                      onChange={v => set("mutations", v)}
+                      placeholder="e.g. BRAF V600E, EGFR amplification, TERT promoter..."
+                    />
+                  </div>
                   <div className="field">
                     <label>Tumor Status</label>
                     <select value={form.tumorStatus} onChange={e => set("tumorStatus", e.target.value)}>
@@ -1004,21 +1020,6 @@ export default function App() {
                       <option value="methylated">Methylated</option>
                       <option value="unknown">Unknown / Not Tested</option>
                     </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Molecular Markers */}
-              <div className="card">
-                <div className="section-label">Molecular Markers & Mutations</div>
-                <div className="form-grid full">
-                  <div className="field">
-                    <label>Known Mutations / Alterations (press Enter or comma to add)</label>
-                    <TagInput
-                      value={form.mutations}
-                      onChange={v => set("mutations", v)}
-                      placeholder="e.g. BRAF V600E, EGFR amplification, TERT promoter..."
-                    />
                   </div>
                 </div>
               </div>
