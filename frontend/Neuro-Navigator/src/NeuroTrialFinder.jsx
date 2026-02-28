@@ -1024,7 +1024,7 @@ export default function App() {
     try {
       const payload = {
         age: parseInt(form.age, 10),
-        zipcode: form.zipcode || null,
+        zipCode: form.zipcode || null,
         diagnosis: DIAGNOSIS_MAP[form.diagnosis] || "Other",
         grade: parseInt(form.grade, 10),
         tumorStatus: form.tumorStatus,
@@ -1038,7 +1038,8 @@ export default function App() {
         additionalNotes: form.additionalNotes || null,
       };
 
-      const res = await fetch("/api/rank", {
+      const API = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${API}/rank`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -1280,7 +1281,7 @@ export default function App() {
                 style={{ width: "100%", marginBottom: 16, justifyContent: "center" }}
                 onClick={async () => {
                   if (!mapsKey) {
-                    const res = await fetch("http://localhost:8000/api/maps-key");
+                    const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/maps-key`);
                     const data = await res.json();
                     setMapsKey(data.key);
                   }

@@ -8,7 +8,7 @@ CACHE_TTL = 600  # seconds (10 minutes)
 _cache: dict[tuple, tuple] = {}  # (query, page_size, page_token) -> (data, timestamp)
 
 
-def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
+def _fetch_studies_sync(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
     cache_key = (condition, page_size, page_token)
     now = time.monotonic()
     cached = _cache.get(cache_key)
@@ -28,6 +28,10 @@ def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = 
     data = response.json()
     _cache[cache_key] = (data, now)
     return data
+
+
+async def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
+    return await asyncio.to_thread(_fetch_studies_sync, condition, page_size, page_token)
 
 
 def parse_studies(data: dict) -> list[dict]:

@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from patient_profile import PatientProfile
 from clinical_trials import fetch_studies, parse_studies
 from prompts import rank_trials
-from geocode import geocode_address
+from geocode import geocode_address, geocode_zip
 import asyncio
+import time
 import os
 
 load_dotenv()
@@ -14,7 +15,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        os.environ.get("FRONTEND_URL", ""),
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -31,6 +36,38 @@ def maps_key():
     if not key:
         raise HTTPException(status_code=500, detail="Maps key not configured")
     return {"key": key}
+
+
+def _location_bonus(sites: list[dict], patient_loc: dict | None) -> int:
+    """Return the best location bonus across all sites for a trial.
+
+    Tiers (applied to the best-matching site):
+      Same city + state  → +20
+      Same state only    → +10
+      Same country       → +3
+      No match / unknown →  0
+    """
+    if not patient_loc or not sites:
+        return 0
+
+    p_city    = (patient_loc.get("city")    or "").strip().lower()
+    p_state   = (patient_loc.get("state")   or "").strip().lower()
+    p_country = (patient_loc.get("country") or "").strip().lower()
+
+    best = -15  # default: assume all international until proven otherwise
+    for site in sites:
+        s_city    = (site.get("city")    or "").strip().lower()
+        s_state   = (site.get("state")   or "").strip().lower()
+        s_country = (site.get("country") or "").strip().lower()
+
+        if p_city and p_state and s_city == p_city and s_state == p_state:
+            return 20  # best possible — no need to check further
+        elif p_state and s_state == p_state:
+            best = max(best, 10)
+        elif p_country and s_country == p_country:
+            best = max(best, 3)
+
+    return best
 
 
 async def _geocode_all(trials: list[dict]) -> None:
@@ -76,26 +113,32 @@ async def rank(profile: PatientProfile):
 
         t0 = time.monotonic()
         raw    = await fetch_studies(condition=condition, page_size=25)
-        query = f"{profile.diagnosis.value} brain tumor clinical trial"
-        raw = fetch_studies(condition=query, page_size=150)
         trials = parse_studies(raw)
+        print(f"[timing] fetch+parse: {time.monotonic()-t0:.2f}s  trials={len(trials)}")
 
-        for trial in trials:
-            for site in trial.get("sites", [])[:5]:
-                if site["lat"] is None and site["address"] and site.get("country") in (None, "", "United States"):
-                    coords = geocode_address(site["address"])
-                    if coords:
-                        site["lat"], site["lng"] = coords
-
-        print("SITES SAMPLE:", trials[0].get("sites", [])[:2] if trials else "no trials")
-
-        result = await rank_trials(profile, trials)
+        t1 = time.monotonic()
+        (result, _), patient_loc = await asyncio.gather(
+            asyncio.gather(rank_trials(profile, trials), _geocode_all(trials)),
+            asyncio.to_thread(geocode_zip, profile.zipCode) if profile.zipCode else asyncio.sleep(0),
+        )
+        print(f"[timing] gpt+geocode+zip: {time.monotonic()-t1:.2f}s")
 
         sites_by_nct = {t["nct_id"]: t.get("sites", []) for t in trials}
-        for ranked in result.get("rankedTrials", []):
+        ranked_trials = result.get("rankedTrials", [])
+
+        # Apply location bonus and re-sort
+        if patient_loc:
+            for trial in ranked_trials:
+                sites = sites_by_nct.get(trial["nctId"], [])
+                trial["matchScore"] = trial.get("matchScore", 0) + _location_bonus(sites, patient_loc)
+            ranked_trials.sort(key=lambda t: t.get("matchScore", 0), reverse=True)
+            for i, trial in enumerate(ranked_trials):
+                trial["rank"] = i + 1
+
+        for ranked in ranked_trials:
             ranked["sites"] = sites_by_nct.get(ranked["nctId"], [])
 
-        return result
+        return {**result, "rankedTrials": ranked_trials}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

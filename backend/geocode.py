@@ -88,3 +88,48 @@ def geocode_address(address):
         _set_cached(address, latitude, longitude)
 
         return (latitude, longitude)
+
+
+def geocode_zip(zip_code: str) -> dict | None:
+    """Return {city, state, country, lat, lng} for a zip/postal code."""
+    if not zip_code or not GOOGLE_KEY:
+        return None
+
+    zip_code = zip_code.strip()
+
+    with LOCK:
+        response = requests.get(
+            GEOCODE_URL,
+            params={"address": zip_code, "key": GOOGLE_KEY},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("status") != "OK":
+            return None
+
+        results = data.get("results")
+        if not results:
+            return None
+
+        components = results[0].get("address_components", [])
+        location = results[0]["geometry"]["location"]
+
+        city = state = country = ""
+        for comp in components:
+            types = comp.get("types", [])
+            if "locality" in types or "postal_town" in types:
+                city = comp["long_name"]
+            elif "administrative_area_level_1" in types:
+                state = comp["long_name"]
+            elif "country" in types:
+                country = comp["long_name"]
+
+        return {
+            "city": city,
+            "state": state,
+            "country": country,
+            "lat": float(location["lat"]),
+            "lng": float(location["lng"]),
+        }
