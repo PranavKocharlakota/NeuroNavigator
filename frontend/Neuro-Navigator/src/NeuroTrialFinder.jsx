@@ -862,6 +862,8 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [results, setResults] = useState([]);
   const [error, setError] = useState("");
+  const [showMap, setShowMap] = useState(false);
+  const [mapsKey, setMapsKey] = useState("");
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -1115,6 +1117,27 @@ export default function App() {
               {results.map((trial, i) => (
                 <TrialCard key={trial.nctId} trial={trial} index={i} />
               ))}
+
+              {showMap && mapsKey && (
+                <TrialsMap trials={results} apiKey={mapsKey} />
+              )}
+
+              <button
+                className="reset-btn"
+                style={{ width: "100%", marginBottom: 16, justifyContent: "center" }}
+                onClick={async () => {
+                  if (!mapsKey) {
+                    const res = await fetch("http://localhost:8000/api/maps-key");
+                    const data = await res.json();
+                    setMapsKey(data.key);
+                  }
+                  setShowMap(v => !v);
+                }}
+              >
+                {showMap ? "Hide Map" : "🗺 Show Trials on Map"}
+              </button>
+
+              <div className="disclaimer"></div>
 
               <div className="disclaimer">
                 <span className="disclaimer-icon">⚕</span>
