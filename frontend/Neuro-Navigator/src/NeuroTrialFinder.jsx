@@ -1134,7 +1134,7 @@ export default function App() {
                   setShowMap(v => !v);
                 }}
               >
-                {showMap ? "Hide Map" : "🗺 Show Trials on Map"}
+                {showMap ? "Hide Map" : "Show Trials on Map"}
               </button>
 
               <div className="disclaimer"></div>
