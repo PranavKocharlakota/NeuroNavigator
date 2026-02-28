@@ -3,8 +3,8 @@ from patient_profile import PatientProfile
 import asyncio
 import json
 
-CHUNK_SIZE    = 25  # trials per GPT call — keeps each request ~5K tokens
-MAX_PARALLEL  = 3   # max simultaneous GPT calls; controls TPM burst
+CHUNK_SIZE    = 10  # trials per GPT call — smaller chunks finish faster in parallel
+MAX_PARALLEL  = 5   # max simultaneous GPT calls; controls TPM burst
 MAX_RETRIES   = 4   # retry attempts on rate-limit errors
 RETRY_BASE_S  = 2   # exponential backoff base (2, 4, 8, 16 seconds)
 
@@ -22,7 +22,6 @@ SCORING (0–100):
 Untested markers: apply -5, add to warningFlags (e.g. "EGFRvIII untested — confirm; positive result would strengthen match"), never exclude.
 
 Per ranked trial write:
-- clinicalReasoning: 3–4 sentences for the oncologist; name specific molecular criteria, what drove score, any ambiguities
 - patientExplanation: 3–4 conversational sentences a non-scientist can follow; explain what the treatment does in everyday terms (e.g. "targets a protein that helps the tumor grow"), then tell the patient specifically what about their situation makes them a candidate; be warm and concrete, no unexplained acronyms or lab terms
 
 dataGaps: actionable recommendations for untested markers that would open additional trials.
@@ -44,13 +43,9 @@ OUTPUT: Return only valid JSON, matchScore ≥ 40 only, ranked descending; Phase
       "eligibilitySummary": ["string"],
       "mechanism": "string",
       "keyDates": "string",
-      "clinicalReasoning": "string",
       "patientExplanation": "string",
       "warningFlags": []
     }
-  ],
-  "excludedTrials": [
-    {"nctId": "NCT...", "name": "string", "matchScore": 0, "matchTier": "Excluded", "hardExclusions": ["string"]}
   ],
   "dataGaps": ["string"]
 }
@@ -65,11 +60,13 @@ async def _rank_chunk(client: AsyncOpenAI, sem: asyncio.Semaphore,
         f"CLINICAL TRIALS TO EVALUATE ({len(chunk)} total):\n{json.dumps(chunk, indent=2)}\n\n"
         "Rank these trials by eligibility match. Return JSON only."
     )
+    import time
     async with sem:
         for attempt in range(MAX_RETRIES):
             try:
+                t = time.monotonic()
                 response = await client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user",   "content": user_message},
@@ -77,11 +74,14 @@ async def _rank_chunk(client: AsyncOpenAI, sem: asyncio.Semaphore,
                     response_format={"type": "json_object"},
                     temperature=0,
                 )
+                print(f"[timing] gpt chunk ({len(chunk)} trials): {time.monotonic()-t:.2f}s")
                 return json.loads(response.choices[0].message.content)
             except RateLimitError:
+                sleep_s = RETRY_BASE_S ** attempt
+                print(f"[timing] RateLimitError attempt={attempt}, sleeping {sleep_s}s")
                 if attempt == MAX_RETRIES - 1:
                     raise
-                await asyncio.sleep(RETRY_BASE_S ** attempt)  # 1, 2, 4, 8 s
+                await asyncio.sleep(sleep_s)
 
 
 async def rank_trials(profile: PatientProfile, raw_trials: list[dict]) -> dict:
@@ -98,28 +98,23 @@ async def rank_trials(profile: PatientProfile, raw_trials: list[dict]) -> dict:
         _rank_chunk(client, sem, profile_dict, chunk) for chunk in chunks
     ])
 
-    # Merge across all chunks
-    all_ranked   = []
-    all_excluded = []
-    all_gaps     = []
-    seen_gaps    = set()
+    all_ranked = []
+    all_gaps   = []
+    seen_gaps  = set()
 
     for result in chunk_results:
         all_ranked.extend(result.get("rankedTrials", []))
-        all_excluded.extend(result.get("excludedTrials", []))
         for gap in result.get("dataGaps", []):
             if gap not in seen_gaps:
                 seen_gaps.add(gap)
                 all_gaps.append(gap)
 
-    # Sort by score descending and re-number ranks
     all_ranked.sort(key=lambda t: t.get("matchScore", 0), reverse=True)
     top8 = all_ranked[:8]
     for i, trial in enumerate(top8):
         trial["rank"] = i + 1
 
     return {
-        "rankedTrials":  top8,
-        "excludedTrials": all_excluded,
-        "dataGaps":      all_gaps,
+        "rankedTrials": top8,
+        "dataGaps":     all_gaps,
     }
