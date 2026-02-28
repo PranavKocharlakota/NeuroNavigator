@@ -33,9 +33,49 @@ def maps_key():
     return {"key": key}
 
 
+async def _geocode_all(trials: list[dict]) -> None:
+    """Geocode all sites with missing coords in parallel using a thread pool."""
+    tasks = {}
+    for trial in trials:
+        for site in trial.get("sites", []):
+            addr = site.get("address")
+            if site["lat"] is None and addr and addr not in tasks:
+                tasks[addr] = asyncio.create_task(
+                    asyncio.to_thread(geocode_address, addr)
+                )
+
+    if not tasks:
+        return
+
+    results = await asyncio.gather(*tasks.values(), return_exceptions=True)
+    coords_map = {
+        addr: coords
+        for addr, coords in zip(tasks.keys(), results)
+        if isinstance(coords, tuple)
+    }
+
+    for trial in trials:
+        for site in trial.get("sites", []):
+            addr = site.get("address")
+            if site["lat"] is None and addr in coords_map:
+                site["lat"], site["lng"] = coords_map[addr]
+
+
 @app.post("/rank")
 async def rank(profile: PatientProfile):
     try:
+        DIAGNOSIS_COND = {
+            "GBM":               "glioblastoma",
+            "Astrocytoma":       "astrocytoma brain",
+            "Oligodendroglioma": "oligodendroglioma",
+            "DIPG":              "diffuse intrinsic pontine glioma",
+            "Other":             "brain tumor glioma",
+        }
+        base_cond = DIAGNOSIS_COND.get(profile.diagnosis.value, "brain tumor")
+        condition  = f"recurrent {base_cond}" if profile.tumorStatus.value == "recurrent" else base_cond
+
+        t0 = time.monotonic()
+        raw    = await fetch_studies(condition=condition, page_size=25)
         query = f"{profile.diagnosis.value} brain tumor clinical trial"
         raw = fetch_studies(condition=query, page_size=150)
         trials = parse_studies(raw)
