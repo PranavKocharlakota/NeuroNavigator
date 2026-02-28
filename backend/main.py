@@ -40,8 +40,6 @@ async def _geocode_all(trials: list[dict]) -> None:
         for site in trial.get("sites", []):
             addr = site.get("address")
             if site["lat"] is None and addr and addr not in tasks:
-                # asyncio.to_thread runs the sync geocode_address in a thread,
-                # allowing all missing addresses to geocode concurrently
                 tasks[addr] = asyncio.create_task(
                     asyncio.to_thread(geocode_address, addr)
                 )
