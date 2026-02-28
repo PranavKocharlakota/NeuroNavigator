@@ -33,61 +33,23 @@ def maps_key():
     return {"key": key}
 
 
-async def _geocode_all(trials: list[dict]) -> None:
-    """Geocode all sites with missing coords in parallel using a thread pool."""
-    tasks = {}
-    for trial in trials:
-        for site in trial.get("sites", []):
-            addr = site.get("address")
-            if site["lat"] is None and addr and addr not in tasks:
-                # asyncio.to_thread runs the sync geocode_address in a thread,
-                # allowing all missing addresses to geocode concurrently
-                tasks[addr] = asyncio.create_task(
-                    asyncio.to_thread(geocode_address, addr)
-                )
-
-    if not tasks:
-        return
-
-    results = await asyncio.gather(*tasks.values(), return_exceptions=True)
-    coords_map = {
-        addr: coords
-        for addr, coords in zip(tasks.keys(), results)
-        if isinstance(coords, tuple)
-    }
-
-    for trial in trials:
-        for site in trial.get("sites", []):
-            addr = site.get("address")
-            if site["lat"] is None and addr in coords_map:
-                site["lat"], site["lng"] = coords_map[addr]
-
-
 @app.post("/rank")
 async def rank(profile: PatientProfile):
-    import time
     try:
-        DIAGNOSIS_COND = {
-            "GBM":               "glioblastoma",
-            "Astrocytoma":       "astrocytoma brain",
-            "Oligodendroglioma": "oligodendroglioma",
-            "DIPG":              "diffuse intrinsic pontine glioma",
-            "Other":             "brain tumor glioma",
-        }
-        base_cond = DIAGNOSIS_COND.get(profile.diagnosis.value, "brain tumor")
-        condition  = f"recurrent {base_cond}" if profile.tumorStatus.value == "recurrent" else base_cond
-
-        t0 = time.monotonic()
-        raw    = await fetch_studies(condition=condition, page_size=50)
+        query = f"{profile.diagnosis.value} brain tumor clinical trial"
+        raw = fetch_studies(condition=query, page_size=150)
         trials = parse_studies(raw)
-        print(f"[timing] fetch+parse: {time.monotonic()-t0:.2f}s  trials={len(trials)}")
 
-        t1 = time.monotonic()
-        result, _ = await asyncio.gather(
-            rank_trials(profile, trials),
-            _geocode_all(trials),
-        )
-        print(f"[timing] gpt+geocode: {time.monotonic()-t1:.2f}s")
+        for trial in trials:
+            for site in trial.get("sites", [])[:5]:
+                if site["lat"] is None and site["address"] and site.get("country") in (None, "", "United States"):
+                    coords = geocode_address(site["address"])
+                    if coords:
+                        site["lat"], site["lng"] = coords
+
+        print("SITES SAMPLE:", trials[0].get("sites", [])[:2] if trials else "no trials")
+
+        result = await rank_trials(profile, trials)
 
         sites_by_nct = {t["nct_id"]: t.get("sites", []) for t in trials}
         for ranked in result.get("rankedTrials", []):

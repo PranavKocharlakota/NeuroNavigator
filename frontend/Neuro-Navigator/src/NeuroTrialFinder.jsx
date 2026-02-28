@@ -1050,6 +1050,7 @@ export default function App() {
         mechanism: t.mechanism || "",
         keyDates: t.keyDates || "",
         reasoning: t.patientExplanation || "",
+        sites: t.sites || [],
       }));
 
       setResults(trials);

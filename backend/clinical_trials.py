@@ -8,14 +8,12 @@ CACHE_TTL = 600  # seconds (10 minutes)
 _cache: dict[tuple, tuple] = {}  # (query, page_size, page_token) -> (data, timestamp)
 
 
-def _fetch_studies_sync(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
+def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
     cache_key = (condition, page_size, page_token)
     now = time.monotonic()
-
     cached = _cache.get(cache_key)
     if cached and (now - cached[1]) < CACHE_TTL:
         return cached[0]
-
     params = {
         "pageSize": page_size,
         "sort": "LastUpdatePostDate:desc",
@@ -25,17 +23,11 @@ def _fetch_studies_sync(condition: str = None, page_size: int = 10, page_token: 
         params["query.term"] = condition
     if page_token:
         params["pageToken"] = page_token
-
     response = requests.get(BASE_URL, params=params, timeout=30)
     response.raise_for_status()
     data = response.json()
-
     _cache[cache_key] = (data, now)
     return data
-
-
-async def fetch_studies(condition: str = None, page_size: int = 10, page_token: str = None) -> dict:
-    return await asyncio.to_thread(_fetch_studies_sync, condition, page_size, page_token)
 
 
 def parse_studies(data: dict) -> list[dict]:
@@ -70,7 +62,7 @@ def parse_studies(data: dict) -> list[dict]:
                     "city":     city,
                     "state":    state,
                     "country":  country,
-                    "address":  address,
+                    "address": ", ".join([p for p in [city, state, country] if p]),
                     "lat":      geo.get("lat") if geo else None,
                     "lng":      geo.get("lon") if geo else None,
                 })
