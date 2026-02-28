@@ -2,8 +2,6 @@ from openai import AsyncOpenAI
 from patient_profile import PatientProfile
 import json
 
-client = AsyncOpenAI()
-
 SYSTEM_PROMPT = """
 You are a neuro-oncology clinical trial eligibility analyst with deep expertise in 
 brain tumor molecular profiling and clinical trial design.
@@ -128,12 +126,50 @@ OUTPUT RULES
 - Do not return trials with matchScore below 40 in the ranked list.
 - Rank by matchScore descending. If two trials tie, rank the Phase III trial 
   higher (more established evidence).
-- Every field in the schema is required. Use empty arrays [] not null for 
+- Every field in the schema is required. Use empty arrays [] not null for
   list fields with no values.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED OUTPUT JSON SCHEMA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Return exactly this structure. All fields are required.
+
+{
+  "rankedTrials": [
+    {
+      "rank": 1,
+      "nctId": "NCT...",
+      "name": "trial brief title",
+      "phase": "Phase I | Phase II | Phase III | Phase I/II | Phase II/III | N/A",
+      "type": "Targeted Therapy | Immunotherapy | Chemotherapy | Vaccine / Immunotherapy | Standard + Device | Other",
+      "matchScore": 85,
+      "matchTier": "Strong | Moderate | Partial",
+      "location": "brief site summary e.g. 'Multiple US Sites' or specific institution names",
+      "status": "Recruiting | Active, not recruiting | Completed | Unknown",
+      "eligibilitySummary": ["key criterion 1", "key criterion 2"],
+      "mechanism": "1-2 sentences on how this therapy works mechanistically",
+      "keyDates": "enrollment status and estimated completion if available",
+      "clinicalReasoning": "3-4 sentences for the oncologist referencing specific molecular criteria",
+      "patientExplanation": "2-3 plain-language sentences for the patient",
+      "warningFlags": []
+    }
+  ],
+  "excludedTrials": [
+    {
+      "nctId": "NCT...",
+      "name": "trial title",
+      "matchScore": 0,
+      "matchTier": "Excluded",
+      "hardExclusions": ["specific exclusion reason"]
+    }
+  ],
+  "dataGaps": ["actionable recommendation if a specific test result would open new trials"]
+}
 """
 
 async def rank_trials(profile: PatientProfile, raw_trials: list[dict]) -> dict:
     """Send trials + patient profile to OpenAI for reasoning and ranking."""
+    client = AsyncOpenAI()
 
     user_message = f"""
 PATIENT PROFILE:

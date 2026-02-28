@@ -715,64 +715,6 @@ const styles = `
   }
 `;
 
-const MOCK_RESULTS = [
-  {
-    rank: 1,
-    nctId: "NCT04003649",
-    name: "Tovorafenib + Cobimetinib for Recurrent High-Grade Glioma with BRAF/MAP Kinase Alterations",
-    phase: "Phase II",
-    type: "Targeted Therapy",
-    matchScore: 94,
-    location: "Multiple US Sites",
-    status: "Recruiting",
-    eligibilitySummary: ["BRAF V600E or BRAF fusion", "Recurrent after ≥1 prior therapy", "KPS ≥ 60", "Age ≥ 12"],
-    mechanism: "Tovorafenib is a CNS-penetrant RAF dimer inhibitor; cobimetinib blocks downstream MEK signaling. Together they address adaptive resistance in BRAF-altered gliomas.",
-    keyDates: "Enrollment open — Est. completion Dec 2025",
-    reasoning: "Your IDH-wildtype GBM with BRAF fusion and prior TMZ/RT aligns strongly with this trial's primary eligibility criteria. The CNS penetrance of tovorafenib is particularly relevant given your blood-brain barrier concerns. Match score reduced slightly as cobimetinib has known ocular toxicity requiring ophthalmology monitoring."
-  },
-  {
-    rank: 2,
-    nctId: "NCT05112692",
-    name: "CAR-T EGFRvIII Therapy (GD2-CAR) with Pembrolizumab in Newly Diagnosed GBM",
-    phase: "Phase I/II",
-    type: "Immunotherapy",
-    matchScore: 78,
-    location: "MSK, UCSF, Dana-Farber",
-    status: "Recruiting",
-    eligibilitySummary: ["EGFRvIII+ confirmed by IHC", "Newly diagnosed or first recurrence", "ECOG ≤ 2", "No prior immunotherapy"],
-    mechanism: "Lentiviral CAR-T cells targeting EGFRvIII combined with PD-1 blockade. Aims to overcome immunosuppressive tumor microenvironment through dual T-cell activation.",
-    keyDates: "Phase I complete — Phase II open",
-    reasoning: "Strong match if EGFRvIII expression is confirmed — this is required. Your age and performance status align well. No prior checkpoint inhibitor use is a key eligibility gate. The trial requires travel to a major academic center, which may be a logistical consideration."
-  },
-  {
-    rank: 3,
-    nctId: "NCT04730089",
-    name: "Temozolomide + Bevacizumab + Tumor-Treating Fields (Optune) for MGMT-Unmethylated GBM",
-    phase: "Phase III",
-    type: "Standard + Device",
-    matchScore: 71,
-    location: "Community + Academic Sites (280+ locations)",
-    status: "Recruiting",
-    eligibilitySummary: ["MGMT promoter unmethylated", "Newly diagnosed GBM", "Post-RT with TMZ", "KPS ≥ 70"],
-    mechanism: "Adds bevacizumab (anti-VEGF) to the standard TTFields + TMZ regimen for MGMT-unmethylated patients who have lower benefit from TMZ alone.",
-    keyDates: "Open broadly — 280+ sites",
-    reasoning: "MGMT-unmethylated status is the primary driver here — this population sees limited benefit from TMZ chemotherapy alone, making this combinatorial strategy scientifically rationale. The broad site availability improves access. KPS requirement of 70 is the main performance status threshold to verify."
-  },
-  {
-    rank: 4,
-    nctId: "NCT05327283",
-    name: "Vaccine Immunotherapy (SurVaxM) Targeting Survivin Peptide in Recurrent GBM",
-    phase: "Phase II",
-    type: "Vaccine / Immunotherapy",
-    matchScore: 62,
-    location: "Roswell Park, Duke, Mayo",
-    status: "Recruiting",
-    eligibilitySummary: ["HLA-A*02:01 required (genetic screen)", "Recurrent GBM after standard therapy", "No active steroid use (>4mg/day dex)", "ECOG ≤ 2"],
-    mechanism: "Survivin peptide vaccine stimulates cytotoxic T-lymphocyte responses against survivin, an anti-apoptotic protein overexpressed in GBM. Combined with GM-CSF and Montanide adjuvant.",
-    keyDates: "Screening open",
-    reasoning: "Match score limited by the HLA-A*02:01 requirement (~45% of Caucasian patients qualify) — a simple blood test determines eligibility. Steroid use is a common exclusion; tapering to <4mg/day dexamethasone may be needed. If HLA match confirmed, this is a well-tolerated option with promising early survival signals."
-  }
-];
 
 const performanceLabels = ["Fully active", "Restricted strenuous", "Ambulatory, selfcare", "Limited selfcare", "Completely disabled"];
 
@@ -900,10 +842,14 @@ const LOADING_STEPS = [
 ];
 
 export default function App() {
+  const DIAGNOSIS_MAP = { GBM: "GBM", AA: "Astrocytoma", AO: "Oligodendroglioma", DIPG: "DIPG", Meningioma: "Other", Medulloblastoma: "Other", Other: "Other" };
+  const VALID_TREATMENTS = new Set(["Surgery", "Radiation", "Temozolomide", "Bevacizumab", "Immunotherapy", "Lomustine", "Other"]);
+
   const [form, setForm] = useState({
     age: "",
     diagnosis: "GBM",
     grade: "4",
+    tumorStatus: "newly_diagnosed",
     idh: "wildtype",
     mgmt: "unmethylated",
     mutations: [],
@@ -923,26 +869,68 @@ export default function App() {
     setPhase("loading");
     setLoadingStep(0);
 
-    // Simulate progressive loading steps
-    for (let i = 0; i < LOADING_STEPS.length; i++) {
-      await new Promise(r => setTimeout(r, 700 + Math.random() * 500));
-      setLoadingStep(i + 1);
+    // Animate steps concurrently with the real API call
+    let step = 0;
+    const stepTimer = setInterval(() => {
+      step = Math.min(step + 1, LOADING_STEPS.length - 1);
+      setLoadingStep(step);
+    }, 2500);
+
+    try {
+      const payload = {
+        age: parseInt(form.age, 10),
+        diagnosis: DIAGNOSIS_MAP[form.diagnosis] || "Other",
+        grade: parseInt(form.grade, 10),
+        tumorStatus: form.tumorStatus,
+        idh: form.idh,
+        mgmt: form.mgmt,
+        mutations: form.mutations,
+        priorTreatments: [...new Set(
+          form.priorTreatments.map(t => VALID_TREATMENTS.has(t) ? t : "Other")
+        )],
+        ecog: form.ecog,
+        additionalNotes: form.additionalNotes || null,
+      };
+
+      const res = await fetch("/api/rank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      clearInterval(stepTimer);
+      setLoadingStep(LOADING_STEPS.length);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        setError(errText);
+        setPhase("error");
+        return;
+      }
+
+      const data = await res.json();
+      const trials = (data.rankedTrials || []).map((t, i) => ({
+        rank: t.rank ?? i + 1,
+        nctId: t.nctId,
+        name: t.name,
+        phase: t.phase || "N/A",
+        type: t.type || "Clinical Trial",
+        matchScore: t.matchScore,
+        location: t.location || "Multiple Sites",
+        status: t.status || "Recruiting",
+        eligibilitySummary: t.eligibilitySummary || [],
+        mechanism: t.mechanism || "",
+        keyDates: t.keyDates || "",
+        reasoning: t.clinicalReasoning || "",
+      }));
+
+      setResults(trials);
+      setPhase("results");
+    } catch (e) {
+      clearInterval(stepTimer);
+      setError(e.message || "Connection error. Is the backend running on port 8000?");
+      setPhase("error");
     }
-
-    // TODO: Replace with actual FastAPI call:
-    // const res = await fetch("/api/find-trials", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(form)
-    // });
-    // if (!res.ok) { setError(await res.text()); setPhase("error"); return; }
-    // const data = await res.json();
-    // setResults(data.trials);
-
-    // Using mock data for now
-    await new Promise(r => setTimeout(r, 400));
-    setResults(MOCK_RESULTS);
-    setPhase("results");
   };
 
   const canSubmit = form.age && form.diagnosis && form.ecog !== null;
@@ -992,6 +980,13 @@ export default function App() {
                       <option value="2">Grade 2</option>
                       <option value="3">Grade 3</option>
                       <option value="4">Grade 4</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Tumor Status</label>
+                    <select value={form.tumorStatus} onChange={e => set("tumorStatus", e.target.value)}>
+                      <option value="newly_diagnosed">Newly Diagnosed</option>
+                      <option value="recurrent">Recurrent</option>
                     </select>
                   </div>
                   <div className="field">

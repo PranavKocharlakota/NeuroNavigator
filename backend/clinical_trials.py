@@ -25,10 +25,14 @@ def parse_studies(data: dict) -> list[dict]:
 
         nct_id = id_module.get("nctId")
         eligibility = eligibility_module.get("eligibilityCriteria") or ""
+        design_module = protocol.get("designModule", {})
+        phases = design_module.get("phases", [])
+        phase_str = " / ".join(phases) if phases else "N/A"
         results.append({
             "nct_id": nct_id,
             "title": id_module.get("briefTitle"),
             "status": status_module.get("overallStatus"),
+            "phase": phase_str,
             "eligibility": eligibility[:1500],
             "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else None,
         })
