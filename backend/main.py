@@ -126,11 +126,14 @@ async def rank(profile: PatientProfile):
         sites_by_nct = {t["nct_id"]: t.get("sites", []) for t in trials}
         ranked_trials = result.get("rankedTrials", [])
 
-        # Apply location bonus and re-sort
+        # Cap raw GPT scores and apply location bonus
+        for trial in ranked_trials:
+            trial["matchScore"] = min(95, trial.get("matchScore", 0))
+
         if patient_loc:
             for trial in ranked_trials:
                 sites = sites_by_nct.get(trial["nctId"], [])
-                trial["matchScore"] = trial.get("matchScore", 0) + _location_bonus(sites, patient_loc)
+                trial["matchScore"] = min(95, trial.get("matchScore", 0) + _location_bonus(sites, patient_loc))
             ranked_trials.sort(key=lambda t: t.get("matchScore", 0), reverse=True)
             for i, trial in enumerate(ranked_trials):
                 trial["rank"] = i + 1

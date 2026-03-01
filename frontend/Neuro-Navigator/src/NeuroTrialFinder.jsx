@@ -1119,7 +1119,12 @@ export default function App() {
                 <div className="form-grid">
                   <div className="field">
                     <label>Age</label>
-                    <input type="number" placeholder="e.g. 54" value={form.age} onChange={e => set("age", e.target.value)} min={18} max={100} />
+                    <input type="number" placeholder="18 – 100" value={form.age}
+                      onChange={e => set("age", e.target.value)}
+                      onBlur={e => {
+                        const n = parseInt(e.target.value, 10);
+                        if (!isNaN(n)) set("age", Math.min(100, Math.max(18, n)));
+                      }} />
                   </div>
                   <div className="field">
                     <label>Primary Diagnosis</label>
