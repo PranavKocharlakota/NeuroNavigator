@@ -1322,9 +1322,8 @@ export default function App() {
                   background: "#0f1726", border: "1px solid rgba(99,179,237,0.25)",
                   borderRadius: 10, padding: "10px 12px", fontFamily: "monospace",
                   fontSize: 11, color: "#94a3b8", lineHeight: 2,
-                  display: "flex", flexDirection: "column", alignItems: "center",
                 }}>
-                  <div style={{ color: "#e2e8f0", fontWeight: 600, marginBottom: 6, fontSize: 12 }}>Legend</div>
+                  <div style={{ color: "#e2e8f0", fontWeight: 600, marginBottom: 6, fontSize: 12, textAlign: "center" }}>Legend</div>
                   <div><span style={{ color: "#68d391" }}>●</span> &nbsp;80–100%</div>
                   <div><span style={{ color: "#f6ad55" }}>●</span> &nbsp;60–79%</div>
                   <div><span style={{ color: "#fc8181" }}>●</span> &nbsp;40–59%</div>
