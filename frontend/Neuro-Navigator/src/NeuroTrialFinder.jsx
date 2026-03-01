@@ -819,32 +819,11 @@ function TrialsMap({ trials, apiKey }) {
       ],
     });
 
-    const legend = document.createElement("div");
-    legend.style.cssText = `
-      background: #0f1726;
-      border: 1px solid rgba(99,179,237,0.25);
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin: 10px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #94a3b8;
-      line-height: 2;
-    `;
-    legend.innerHTML = `
-      <div style="color:#e2e8f0;font-weight:600;margin-bottom:6px;font-size:12px">Trial Rank</div>
-      <div><span style="color:#f6ad55">●</span> &nbsp;#1 Match</div>
-      <div><span style="color:#90cdf4">●</span> &nbsp;#2 Match</div>
-      <div><span style="color:#68d391">●</span> &nbsp;#3 Match</div>
-      <div><span style="color:#b794f4">●</span> &nbsp;#4+ Match</div>
-    `;
-    map.controls[window.google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
-
-    const colors = ["#f6ad55", "#90cdf4", "#68d391", "#b794f4"];
     let openInfo = null;
 
     trials.forEach((trial, ti) => {
-      const color = colors[Math.min(ti, colors.length - 1)];
+      const score = trial.matchScore || 0;
+      const color = score >= 80 ? "#68d391" : score >= 60 ? "#f6ad55" : score >= 40 ? "#fc8181" : "#b794f4";
       (trial.sites || []).forEach(site => {
         if (!site.lat || !site.lng) return;
         const marker = new window.google.maps.Marker({
@@ -863,7 +842,7 @@ function TrialsMap({ trials, apiKey }) {
         const info = new window.google.maps.InfoWindow({
           content: `
             <div style="background:#0f1726;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:monospace;font-size:12px;max-width:240px">
-              <div style="color:${color};font-size:10px;margin-bottom:4px">#${trial.rank} Match · ${trial.matchScore}% fit</div>
+              <div style="color:${color};font-size:10px;margin-bottom:4px">#${trial.matchScore}%/div>
               <div style="font-weight:600;margin-bottom:4px;font-size:13px">${trial.nctId}</div>
               <div style="color:#e2e8f0;margin-bottom:6px;font-family:sans-serif;font-size:12px">${trial.name}</div>
               <div style="color:#94a3b8">${site.facility}</div>
@@ -1335,20 +1314,30 @@ export default function App() {
           {phase === "map" && (
             <div style={{ position: "relative" }}>
               <TrialsMap trials={results} apiKey={mapsKey} />
-              <button
-                className="reset-btn"
-                style={{
-                  position: "absolute",
-                  bottom: 24,
-                  left: 24,
-                  zIndex: 10,
-                  background: "var(--bg2)",
-                  borderColor: "var(--border-strong)",
-                }}
-                onClick={() => setPhase("results")}
-              >
-                ← Back to Results
-              </button>
+              <div style={{
+                position: "absolute", bottom: 24, left: 24, zIndex: 10,
+                display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10,
+              }}>
+                <div style={{
+                  background: "#0f1726", border: "1px solid rgba(99,179,237,0.25)",
+                  borderRadius: 10, padding: "10px 12px", fontFamily: "monospace",
+                  fontSize: 11, color: "#94a3b8", lineHeight: 2,
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                }}>
+                  <div style={{ color: "#e2e8f0", fontWeight: 600, marginBottom: 6, fontSize: 12 }}>Legend</div>
+                  <div><span style={{ color: "#68d391" }}>●</span> &nbsp;80–100%</div>
+                  <div><span style={{ color: "#f6ad55" }}>●</span> &nbsp;60–79%</div>
+                  <div><span style={{ color: "#fc8181" }}>●</span> &nbsp;40–59%</div>
+                  <div><span style={{ color: "#b794f4" }}>●</span> &nbsp;&lt;40%</div>
+                </div>
+                <button
+                  className="reset-btn"
+                  style={{ background: "var(--bg2)", borderColor: "var(--border-strong)", justifyContent: "center", width: "100%" }}
+                  onClick={() => setPhase("results")}
+                >
+                  ← Back to Results
+                </button>
+              </div>
             </div>
           )}
         </div>
