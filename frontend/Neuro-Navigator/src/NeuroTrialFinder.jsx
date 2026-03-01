@@ -819,6 +819,15 @@ function TrialsMap({ trials, apiKey }) {
       ],
     });
 
+    const style = document.createElement("style");
+    style.textContent = `
+      .gm-style .gm-style-iw-c { padding: 0 !important; box-shadow: none !important; background: transparent !important; }
+      .gm-style .gm-style-iw-d { overflow: hidden !important; }
+      .gm-style .gm-style-iw-tc { display: none !important; }
+      .gm-style-iw-chr { display: none !important; }
+    `;
+    document.head.appendChild(style);
+
     let openInfo = null;
 
     trials.forEach((trial, ti) => {
@@ -839,17 +848,29 @@ function TrialsMap({ trials, apiKey }) {
             strokeWeight: 2,
           },
         });
-        const info = new window.google.maps.InfoWindow({
-          content: `
-            <div style="background:#0f1726;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:monospace;font-size:12px;max-width:240px">
-              <div style="color:${color};font-size:10px;margin-bottom:4px">#${trial.matchScore}%/div>
-              <div style="font-weight:600;margin-bottom:4px;font-size:13px">${trial.nctId}</div>
-              <div style="color:#e2e8f0;margin-bottom:6px;font-family:sans-serif;font-size:12px">${trial.name}</div>
-              <div style="color:#94a3b8">${site.facility}</div>
-              <div style="color:#94a3b8">${site.city}${site.state ? ", " + site.state : ""}</div>
-            </div>
-          `,
-        });
+        const infoDiv = document.createElement("div");
+        infoDiv.style.cssText = `
+          background:#0f1726;
+          color:#94a3b8;
+          padding:12px 14px;
+          border-radius:8px;
+          font-family:monospace;
+          font-size:12px;
+          max-width:240px;
+          border:1px solid rgba(99,179,237,0.25);
+          position:relative;
+        `;
+        infoDiv.innerHTML = `
+          <div style="position:absolute;top:6px;right:10px;cursor:pointer;color:#475569;font-size:14px;line-height:1" class="info-close">✕</div>
+          <div style="color:${color};font-size:11px;font-weight:600;margin-bottom:4px">${trial.matchScore}% Match</div>
+          <div style="font-weight:600;margin-bottom:4px;font-size:13px;color:#e2e8f0">${trial.nctId}</div>
+          <div style="color:#cbd5e0;margin-bottom:6px;font-family:sans-serif;font-size:12px">${trial.name}</div>
+          <div style="margin-bottom:4px">${site.facility}</div>
+          <div>${site.city}${site.state ? ", " + site.state : ""}</div>
+        `;
+        const info = new window.google.maps.InfoWindow({ content: infoDiv });
+        infoDiv.querySelector(".info-close").addEventListener("click", () => info.close());
+
         marker.addListener("click", () => {
           if (openInfo) openInfo.close();
           openInfo = info;
