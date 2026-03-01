@@ -1050,7 +1050,7 @@ export default function App() {
         additionalNotes: form.additionalNotes || null,
       };
 
-      const API = import.meta.env.VITE_API_URL || "";
+      const API = import.meta.env.VITE_API_URL || "/api";
       const res = await fetch(`${API}/rank`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1293,7 +1293,7 @@ export default function App() {
                 style={{ width: "100%", marginBottom: 16, justifyContent: "center" }}
                 onClick={async () => {
                   if (!mapsKey) {
-                    const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/maps-key`);
+                    const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}/maps-key`);
                     const data = await res.json();
                     setMapsKey(data.key);
                   }

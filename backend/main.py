@@ -30,7 +30,7 @@ def root():
     return {"status": "ok"}
 
 
-@app.get("/api/maps-key")
+@app.get("/maps-key")
 def maps_key():
     key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
     if not key:
